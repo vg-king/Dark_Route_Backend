@@ -200,8 +200,64 @@ button.ghost {
 
 .footer { color: var(--muted); margin-top: 18px; text-align: center; }
 
+/* Enhanced status badges */
+.status {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.status.success {
+  background: rgba(59, 240, 176, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.status.error {
+  background: rgba(255, 123, 123, 0.15);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+/* Health status colors */
+.health-cognitive { color: var(--warning); }
+.health-injured { color: var(--danger); }
+.health-mange { color: var(--danger); }
+.health-healthy { color: var(--accent); }
+.health-fair { color: var(--warning); }
+.health-poor { color: var(--danger); }
+.health-critical { color: var(--danger); font-weight: 700; }
+
+/* Badge variants */
+.badge.success {
+  background: rgba(59, 240, 176, 0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.badge.warning {
+  background: rgba(255, 209, 102, 0.15);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.badge.info {
+  background: rgba(124, 211, 255, 0.15);
+  border: 1px solid var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* Error text */
+.error {
+  color: var(--danger);
+  font-weight: 500;
+}
+
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
   }
 }
+

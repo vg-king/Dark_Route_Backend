@@ -17,73 +17,140 @@ const historyBody = document.getElementById("history-body");
 
 async function checkHealth() {
   statusEl.textContent = "Checking API…";
+  statusEl.className = "status";
   try {
     const res = await fetch(`${API_BASE}/health`);
     const data = await res.json();
-    const loaded = data.model_loaded === "True" || data.model_loaded === true;
-    statusEl.textContent = loaded ? "API ready (model loaded)" : "API ready (model not loaded)";
+    if (data.status === "ok") {
+      const loaded = data.model_loaded === "True" || data.model_loaded === true;
+      statusEl.textContent = `✅ API Ready (v${data.version}) - ${loaded ? 'ML Model Loaded' : 'Heuristic Mode'}`;
+      statusEl.className = "status success";
+    }
   } catch (err) {
-    statusEl.textContent = "API unreachable";
+    statusEl.textContent = "❌ API Unreachable - Start server with: python server_enhanced.py";
+    statusEl.className = "status error";
   }
 }
 
 function renderScores(scores) {
-  if (!scores) return "";
+  if (!scores || Object.keys(scores).length === 0) return "";
   return Object.entries(scores)
-    .map(([k, v]) => `<div class="score-line"><span>${k}</span><span>${(v * 100).toFixed(1)}%</span></div>`) // eslint-disable-line
+    .map(([k, v]) => `<div class="score-line"><span>${k}</span><span>${(v * 100).toFixed(1)}%</span></div>`)
     .join("");
 }
 
 function renderResult(data) {
   latencyEl.textContent = `${data.elapsedMs || "--"} ms`;
-  summaryEl.innerHTML = `
-    <h3>Summary</h3>
-    <p><strong>Animal:</strong> ${data.animalId || "unknown"}</p>
-    <p><strong>Recorded:</strong> ${data.recordedAt || "--"}</p>
-  `;
+  
+  // Summary with identification info
+  let summaryHTML = `<h3>Summary</h3>`;
+  summaryHTML += `<p><strong>Animal ID:</strong> ${data.animalId || "unknown"}</p>`;
+  
+  if (data.identification) {
+    summaryHTML += `<p><strong>ID Method:</strong> ${data.identification.method || "manual"}</p>`;
+    summaryHTML += `<p><strong>ID Confidence:</strong> ${(data.identification.confidence * 100).toFixed(1)}%</p>`;
+    
+    if (data.identification.qr_detected) {
+      summaryHTML += `<p class="badge success">✓ QR Code Detected</p>`;
+    }
+    if (data.identification.ear_tags_detected) {
+      summaryHTML += `<p class="badge warning">✓ Ear Tag Detected</p>`;
+    }
+    if (data.identification.biometric_available) {
+      summaryHTML += `<p class="badge info">✓ Biometric Available</p>`;
+    }
+  }
+  
+  if (data.attendanceMarked) {
+    summaryHTML += `<p class="badge success">✓ Attendance Marked</p>`;
+  }
+  
+  summaryHTML += `<p><strong>Recorded:</strong> ${data.recordedAt ? new Date(data.recordedAt).toLocaleString() : "--"}</p>`;
+  summaryEl.innerHTML = summaryHTML;
 
+  // Behavior
   behaviorEl.innerHTML = `
     <div class="badge">${data.behavior?.label || "--"}</div>
     <div class="scores">${renderScores(data.behavior?.scores)}</div>
   `;
 
-  healthEl.innerHTML = `
-    <div class="badge">${data.health?.label || "--"}</div>
-    <p class="muted">Confidence: ${(data.health?.confidence || 0).toFixed(2)}</p>
-    <div class="scores">${renderScores(data.health?.scores)}</div>
-  `;
+  // Health with comprehensive analysis
+  let healthHTML = `<div class="badge health-${(data.health?.label || '').toLowerCase()}">${data.health?.label || "--"}</div>`;
+  healthHTML += `<p class="muted">Confidence: ${((data.health?.confidence || 0) * 100).toFixed(1)}%</p>`;
+  
+  if (data.health?.comprehensive) {
+    const comp = data.health.comprehensive;
+    healthHTML += `<p><strong>Overall Status:</strong> ${comp.overall_status}</p>`;
+    healthHTML += `<p><strong>Health Score:</strong> ${comp.health_score}/100</p>`;
+    
+    if (comp.body_condition?.score) {
+      healthHTML += `<p><strong>Body Condition:</strong> ${comp.body_condition.score}/5</p>`;
+      healthHTML += `<p class="muted">${comp.body_condition.assessment}</p>`;
+    }
+    
+    if (comp.lameness?.detected) {
+      healthHTML += `<p class="badge warning">⚠️ Lameness Detected</p>`;
+    }
+    
+    if (comp.symptoms?.total_detected > 0) {
+      healthHTML += `<p class="badge warning">⚠️ ${comp.symptoms.total_detected} Symptoms Detected</p>`;
+    }
+  }
+  
+  healthHTML += `<div class="scores">${renderScores(data.health?.scores)}</div>`;
+  healthEl.innerHTML = healthHTML;
 
+  // Identifiers
   identifiersEl.innerHTML = `
     <div class="score-line"><span>Ear Tag</span><span>${data.identifiers?.earTagId || "--"}</span></div>
     <div class="score-line"><span>RFID</span><span>${data.identifiers?.rfid || "--"}</span></div>
     <div class="score-line"><span>QR Collar</span><span>${data.identifiers?.qrId || "--"}</span></div>
   `;
 
+  // Vitals
+  const metrics = data.metrics || {};
   vitalsEl.innerHTML = `
-    <div class="score-line"><span>Weight</span><span>${data.metrics?.weightKg || "--"} kg</span></div>
-    <div class="score-line"><span>Body Temp</span><span>${data.metrics?.bodyTempC || "--"} °C</span></div>
-    <div class="score-line"><span>Heart Rate</span><span>${data.metrics?.heartRateBpm || "--"} bpm</span></div>
+    <div class="score-line"><span>Weight</span><span>${metrics.weight_kg || "--"} kg</span></div>
+    <div class="score-line"><span>Body Temp</span><span>${metrics.body_temperature_c || "--"} °C</span></div>
+    <div class="score-line"><span>Heart Rate</span><span>${metrics.heart_rate_bpm || "--"} bpm</span></div>
+    <div class="score-line"><span>Respiratory</span><span>${metrics.respiratory_rate_bpm || "--"} bpm</span></div>
   `;
 
-  recommendationsEl.innerHTML = (data.recommendations || [])
-    .map((r) => `<li>${r}</li>`) // eslint-disable-line
-    .join("") || '<li class="muted">No recommendations</li>';
+  // Recommendations - handle both array and single strings
+  let recs = [];
+  if (Array.isArray(data.recommendations)) {
+    recs = data.recommendations;
+  } else if (data.recommendations) {
+    recs = [data.recommendations];
+  }
+  
+  recommendationsEl.innerHTML = recs.length > 0
+    ? recs.map((r) => `<li>${r}</li>`).join("")
+    : '<li class="muted">No recommendations</li>';
 }
 
 async function loadHistory() {
   try {
     const res = await fetch(`${API_BASE}/records`);
     const data = await res.json();
-    const rows = (data.items || []).map((item) => `
-      <tr>
-        <td>${item.animal_id}</td>
-        <td>${item.behavior?.label || "--"}</td>
-        <td>${item.health?.label || "--"}</td>
-        <td>${item.location || "--"}</td>
-        <td>${item.recorded_at?.replace('T', ' ').replace('Z', '') || "--"}</td>
-      </tr>
-    `);
-    historyBody.innerHTML = rows.join("") || '<tr><td colspan="5" class="muted">No records yet.</td></tr>';
+    const rows = (data.items || []).map((item) => {
+      const recordedAt = item.recorded_at ? new Date(item.recorded_at).toLocaleString() : "--";
+      const healthLabel = item.health_status || item.health?.label || "--";
+      const behaviorLabel = item.behavior_status || item.behavior?.label || "--";
+      
+      return `
+        <tr>
+          <td>${item.animal_id}</td>
+          <td>${behaviorLabel}</td>
+          <td class="health-${healthLabel.toLowerCase()}">${healthLabel}</td>
+          <td>${item.location || "--"}</td>
+          <td>${recordedAt}</td>
+        </tr>
+      `;
+    });
+    historyBody.innerHTML = rows.length > 0
+      ? rows.join("")
+      : '<tr><td colspan="5" class="muted">No records yet.</td></tr>';
   } catch (err) {
     historyBody.innerHTML = '<tr><td colspan="5" class="muted">Could not load records.</td></tr>';
   }
@@ -112,12 +179,16 @@ form.addEventListener("submit", async (e) => {
       method: "POST",
       body: formData,
     });
-    if (!res.ok) throw new Error("Analysis failed");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ detail: "Unknown error" }));
+      throw new Error(errorData.detail || `HTTP ${res.status}`);
+    }
     const data = await res.json();
     renderResult(data);
     loadHistory();
   } catch (err) {
-    summaryEl.innerHTML = `<p class="muted">Error: ${err.message}</p>`;
+    summaryEl.innerHTML = `<h3>Error</h3><p class="error">❌ ${err.message}</p>`;
+    console.error("Analysis error:", err);
   } finally {
     analyzeBtn.textContent = "Analyze";
     analyzeBtn.disabled = false;
@@ -127,5 +198,7 @@ form.addEventListener("submit", async (e) => {
 reloadHealthBtn.addEventListener("click", checkHealth);
 loadHistoryBtn.addEventListener("click", loadHistory);
 
+// Initial load
 checkHealth();
 loadHistory();
+

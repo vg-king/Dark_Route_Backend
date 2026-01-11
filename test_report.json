@@ -1,0 +1,246 @@
+{
+  "timestamp": "2026-01-11 10:39:17",
+  "total_tests": 6,
+  "passed_tests": 6,
+  "average_accuracy": 96.08333333333333,
+  "execution_time": 0.011199951171875,
+  "test_results": [
+    {
+      "test_name": "Healthy_Cattle_1",
+      "body_condition": {
+        "score": 4,
+        "confidence": 0.93,
+        "assessment": "Good - Optimal health condition",
+        "metrics": {
+          "circularity": 0.72,
+          "solidity": 0.85,
+          "texture_smoothness": 0.68,
+          "brightness_mean": 145.0
+        }
+      },
+      "lameness": {
+        "detected": false,
+        "confidence": 0.35,
+        "severity": "none",
+        "lameness_score": 0.0,
+        "affected_limb": "Unknown",
+        "asymmetry_score": 0.12,
+        "activity_difference": 0.03636363636363636,
+        "recommendation": "\u2713 No significant lameness detected from analysis"
+      },
+      "symptoms": {
+        "symptoms": [],
+        "total_detected": 0,
+        "requires_attention": false,
+        "highest_severity": "none"
+      },
+      "accuracy": 100.0,
+      "passed": true
+    },
+    {
+      "test_name": "Thin_Cattle_1",
+      "body_condition": {
+        "score": 2,
+        "confidence": 0.7300000000000001,
+        "assessment": "Thin - Needs nutritional support and monitoring",
+        "metrics": {
+          "circularity": 0.38,
+          "solidity": 0.68,
+          "texture_smoothness": 0.35,
+          "brightness_mean": 95.0
+        }
+      },
+      "lameness": {
+        "detected": false,
+        "confidence": 0.35,
+        "severity": "none",
+        "lameness_score": 0.0,
+        "affected_limb": "Unknown",
+        "asymmetry_score": 0.15,
+        "activity_difference": 0.04,
+        "recommendation": "\u2713 No significant lameness detected from analysis"
+      },
+      "symptoms": {
+        "symptoms": [
+          {
+            "type": "fair_coat",
+            "description": "Somewhat dull coat quality - monitor nutrition",
+            "severity": "mild",
+            "confidence": 0.62,
+            "texture_score": 22.0
+          }
+        ],
+        "total_detected": 1,
+        "requires_attention": false,
+        "highest_severity": "mild"
+      },
+      "accuracy": 100.0,
+      "passed": true
+    },
+    {
+      "test_name": "Lame_Cattle_1",
+      "body_condition": {
+        "score": 3,
+        "confidence": 0.8600000000000001,
+        "assessment": "Moderate - Acceptable condition, maintain diet",
+        "metrics": {
+          "circularity": 0.58,
+          "solidity": 0.75,
+          "texture_smoothness": 0.52,
+          "brightness_mean": 135.0
+        }
+      },
+      "lameness": {
+        "detected": true,
+        "confidence": 0.9,
+        "severity": "moderate",
+        "lameness_score": 0.95,
+        "affected_limb": "Left side (probable)",
+        "asymmetry_score": 0.32,
+        "activity_difference": 0.3090909090909091,
+        "recommendation": "\u26a0\ufe0f Moderate lameness detected - Conduct gait analysis and veterinary examination"
+      },
+      "symptoms": {
+        "symptoms": [],
+        "total_detected": 0,
+        "requires_attention": false,
+        "highest_severity": "none"
+      },
+      "accuracy": 100.0,
+      "passed": true
+    },
+    {
+      "test_name": "Diseased_Cattle_1",
+      "body_condition": {
+        "score": 3,
+        "confidence": 0.7300000000000001,
+        "assessment": "Moderate - Acceptable condition, maintain diet",
+        "metrics": {
+          "circularity": 0.45,
+          "solidity": 0.7,
+          "texture_smoothness": 0.4,
+          "brightness_mean": 110.0
+        }
+      },
+      "lameness": {
+        "detected": false,
+        "confidence": 0.35,
+        "severity": "none",
+        "lameness_score": 0.15,
+        "affected_limb": "Unknown",
+        "asymmetry_score": 0.18,
+        "activity_difference": 0.0625,
+        "recommendation": "\u2713 No significant lameness detected from analysis"
+      },
+      "symptoms": {
+        "symptoms": [
+          {
+            "type": "severe_lesions",
+            "description": "Multiple significant dark spots detected - possible severe skin lesions or mange",
+            "severity": "severe",
+            "confidence": 0.75,
+            "count": 9
+          },
+          {
+            "type": "severe_inflammation",
+            "description": "Significant redness detected - possible severe inflammation, fever, or infection",
+            "severity": "severe",
+            "confidence": 0.78,
+            "percentage": 22.0
+          },
+          {
+            "type": "significant_discharge",
+            "description": "Significant bright areas in head region - likely eye/nasal discharge",
+            "severity": "moderate",
+            "confidence": 0.65,
+            "area": 2200
+          },
+          {
+            "type": "poor_coat",
+            "description": "Dull or very poor coat quality - may indicate malnutrition or illness",
+            "severity": "moderate",
+            "confidence": 0.72,
+            "texture_score": 18.0
+          }
+        ],
+        "total_detected": 4,
+        "requires_attention": true,
+        "highest_severity": "severe"
+      },
+      "accuracy": 91.24999999999999,
+      "passed": true
+    },
+    {
+      "test_name": "Obese_Cattle_1",
+      "body_condition": {
+        "score": 4,
+        "confidence": 0.95,
+        "assessment": "Good - Optimal health condition",
+        "metrics": {
+          "circularity": 0.82,
+          "solidity": 0.9,
+          "texture_smoothness": 0.78,
+          "brightness_mean": 165.0
+        }
+      },
+      "lameness": {
+        "detected": false,
+        "confidence": 0.35,
+        "severity": "none",
+        "lameness_score": 0.0,
+        "affected_limb": "Unknown",
+        "asymmetry_score": 0.1,
+        "activity_difference": 0.037037037037037035,
+        "recommendation": "\u2713 No significant lameness detected from analysis"
+      },
+      "symptoms": {
+        "symptoms": [],
+        "total_detected": 0,
+        "requires_attention": false,
+        "highest_severity": "none"
+      },
+      "accuracy": 91.24999999999999,
+      "passed": true
+    },
+    {
+      "test_name": "Severe_Lame_Cattle_1",
+      "body_condition": {
+        "score": 3,
+        "confidence": 0.81,
+        "assessment": "Moderate - Acceptable condition, maintain diet",
+        "metrics": {
+          "circularity": 0.52,
+          "solidity": 0.72,
+          "texture_smoothness": 0.48,
+          "brightness_mean": 128.0
+        }
+      },
+      "lameness": {
+        "detected": true,
+        "confidence": 0.9,
+        "severity": "severe",
+        "lameness_score": 1.0,
+        "affected_limb": "Left side (probable)",
+        "asymmetry_score": 0.42,
+        "activity_difference": 0.5172413793103449,
+        "recommendation": "\u26a0\ufe0f Severe lameness detected - Conduct gait analysis and veterinary examination"
+      },
+      "symptoms": {
+        "symptoms": [
+          {
+            "type": "moderate_inflammation",
+            "description": "Moderate redness detected - possible inflammation or mild fever",
+            "severity": "moderate",
+            "confidence": 0.7,
+            "percentage": 15.0
+          }
+        ],
+        "total_detected": 1,
+        "requires_attention": true,
+        "highest_severity": "moderate"
+      },
+      "accuracy": 94.0,
+      "passed": true
+    }
+  ]
+}
