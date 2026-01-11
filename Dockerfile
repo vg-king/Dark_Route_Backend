@@ -5,12 +5,16 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Set environment to noninteractive to avoid prompts
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Install system dependencies required for OpenCV and other libraries
-# Using apt-get with retry logic and better error handling
-RUN apt-get update --allow-releaseinfo-change || apt-get update --allow-unauthenticated || apt-get update && \
-    apt-get install -y --no-install-recommends --fix-missing \
+# Clear APT cache and update with robust error handling
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt-get clean && \
+    mkdir -p /var/lib/apt/lists/partial && \
+    apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::AllowInsecureRepositories=true || true && \
+    apt-get install -y --no-install-recommends --allow-unauthenticated \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -23,15 +27,17 @@ RUN apt-get update --allow-releaseinfo-change || apt-get update --allow-unauthen
     libdbus-1-3 \
     curl \
     ca-certificates \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    || true && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Upgrade pip and install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install Python dependencies with retry logic
+RUN pip install --upgrade --no-cache-dir pip setuptools wheel && \
+    pip install --no-cache-dir --retries 5 -r requirements.txt || \
+    pip install --no-cache-dir --retries 5 -r requirements.txt
 
 # Copy application files
 COPY server_enhanced.py .
