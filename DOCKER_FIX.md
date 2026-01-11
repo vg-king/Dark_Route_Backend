@@ -12,7 +12,7 @@ did not complete successfully: exit code: 100
 - Missing `--no-install-recommends` flag caused unnecessary packages to be pulled
 - Some packages had dependency conflicts
 - Missing environment variable `DEBIAN_FRONTEND=noninteractive`
-- Missing some required libraries for headless OpenCV
+- Missing some required libraries for headless OpenCV 
 
 ### Solution Applied
 
