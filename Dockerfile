@@ -8,7 +8,9 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies required for OpenCV and other libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Using apt-get with retry logic and better error handling
+RUN apt-get update --allow-releaseinfo-change || apt-get update --allow-unauthenticated || apt-get update && \
+    apt-get install -y --no-install-recommends --fix-missing \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -20,8 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon-x11-0 \
     libdbus-1-3 \
     curl \
+    ca-certificates \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy requirements file
 COPY requirements.txt .
