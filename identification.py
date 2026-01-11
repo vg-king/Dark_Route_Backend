@@ -6,7 +6,16 @@ Supports ear tags, QR codes, RFID, and biometric features
 import cv2
 import numpy as np
 from typing import Dict, List, Optional, Tuple
-from pyzbar import pyzbar
+
+# Try to import pyzbar for QR code detection
+try:
+    from pyzbar import pyzbar
+    PYZBAR_AVAILABLE = True
+except ImportError as e:
+    print(f"[WARN] pyzbar import failed: {e}")
+    print("[WARN] QR code detection will be disabled")
+    PYZBAR_AVAILABLE = False
+    pyzbar = None
 
 
 class AnimalIdentifier:
@@ -15,6 +24,7 @@ class AnimalIdentifier:
     def __init__(self):
         self.face_cascade = None
         self._load_cascades()
+        self.qr_detection_available = PYZBAR_AVAILABLE
 
     def _load_cascades(self):
         """Load OpenCV cascades for detection"""
@@ -32,6 +42,10 @@ class AnimalIdentifier:
         Returns list of detected QR codes with data and location
         """
         detected_codes = []
+        
+        # Skip QR detection if pyzbar is not available
+        if not PYZBAR_AVAILABLE:
+            return detected_codes
         
         try:
             # Decode QR codes
@@ -51,7 +65,7 @@ class AnimalIdentifier:
                     'confidence': 0.95  # QR codes are highly reliable when detected
                 })
         except Exception as e:
-            print(f"QR detection error: {e}")
+            print(f"[WARN] QR detection error: {e}")
         
         return detected_codes
 

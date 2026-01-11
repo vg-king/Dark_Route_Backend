@@ -9,25 +9,27 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Clear APT cache and update with robust error handling
+# Clear APT cache and install system dependencies
+# Split into two steps: update first, then install critical libraries
 RUN rm -rf /var/lib/apt/lists/* && \
     apt-get clean && \
-    mkdir -p /var/lib/apt/lists/partial && \
-    apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::AllowInsecureRepositories=true || true && \
+    mkdir -p /var/lib/apt/lists/partial
+
+# Install critical libraries - libzbar0 is essential for barcode detection
+RUN apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::AllowInsecureRepositories=true && \
     apt-get install -y --no-install-recommends --allow-unauthenticated \
+    libzbar0 \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libzbar0 \
     libxcb1 \
     libxkbcommon-x11-0 \
     libdbus-1-3 \
     curl \
-    ca-certificates \
-    || true && \
+    ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
@@ -52,10 +54,6 @@ COPY mobilenetv2_image_classifier.h5* ./
 
 # Create directory for database
 RUN mkdir -p /app/data
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
 
 # Expose port
 EXPOSE 8000

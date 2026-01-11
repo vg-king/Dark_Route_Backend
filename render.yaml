@@ -10,15 +10,10 @@ services:
       - key: PORT
         value: 8000
       - key: PYTHON_VERSION
-        value: 3.11
+        value: "3.11"
       - key: DATABASE_PATH
         value: /app/data/livestock.db
-    healthCheckPath: /health
-    autoDeploy: true
-    
-databases:
-  # Optional: SQLite is used by default in the container
-  # For production, consider PostgreSQL:
-  # - name: livestock-db
-  #   databaseName: livestock
-  #   plan: starter
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
