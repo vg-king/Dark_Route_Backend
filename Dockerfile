@@ -4,8 +4,11 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+# Set environment to noninteractive to avoid prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install system dependencies required for OpenCV and other libraries
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -13,13 +16,19 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgomp1 \
     libzbar0 \
+    libxcb1 \
+    libxkbcommon-x11-0 \
+    libdbus-1-3 \
+    curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY server_enhanced.py .
