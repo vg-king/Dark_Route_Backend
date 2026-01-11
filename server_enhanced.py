@@ -5,6 +5,7 @@ Comprehensive system with database, identification, health analysis, and attenda
 
 import io
 import json
+import os
 import time
 import uuid
 from datetime import datetime, date
@@ -24,10 +25,18 @@ from database import LivestockDatabase
 from identification import AnimalIdentifier
 from health_analyzer import HealthAnalyzer
 
+_tf_available: bool = True
+_load_model_available: bool = True
+_model_error: Optional[str] = None
+
 try:
     from tensorflow.keras.models import load_model
-except Exception:
+except Exception as exc:
+    # TensorFlow/Keras not available in this Python version/env
+    _tf_available = False
+    _load_model_available = False
     load_model = None
+    _model_error = f"TensorFlow/Keras import failed: {exc}"
 
 APP_TITLE = "Livestock Health & Identification API - Enhanced"
 MODEL_PATH = Path(__file__).parent / "mobilenetv2_image_classifier.h5"
@@ -51,6 +60,7 @@ _model = None
 
 def _load_health_model():
     global _model
+    global _model_error
     if _model is not None or load_model is None:
         return
     if MODEL_PATH.exists():
@@ -58,8 +68,10 @@ def _load_health_model():
             _model = load_model(MODEL_PATH)
             print("[INFO] Health classification model loaded successfully")
         except Exception as exc:
-            print(f"[WARN] Failed to load health model: {exc}")
+            print(f"[WARN] Failed to load health model (Keras version issue): {exc}")
+            print("[INFO] Using fallback heuristic health analysis instead")
             _model = None
+            _model_error = str(exc)
 
 
 _load_health_model()
@@ -125,6 +137,27 @@ def _predict_behavior(image_array: np.ndarray) -> Dict:
         return {"label": "Unknown", "scores": {}}
 
 
+@app.get("/")
+def root() -> Dict:
+    """Root endpoint - API information and status"""
+    return {
+        "name": APP_TITLE,
+        "version": "2.0.0",
+        "status": "running",
+        "endpoints": {
+            "health": "/health (GET)",
+            "docs": "/docs (GET)",
+            "analyze": "/analyze/image (POST)",
+            "records": "/records (GET)",
+            "animals": "/animals/register (POST)",
+            "growth": "/growth/{animal_id} (GET)",
+            "attendance": "/attendance/{animal_id} (POST)"
+        },
+        "frontend": "Access frontend at http://localhost:3000",
+        "documentation": "API docs available at /docs"
+    }
+
+
 @app.get("/health")
 def health_check() -> Dict[str, str]:
     """API health check endpoint"""
@@ -132,7 +165,12 @@ def health_check() -> Dict[str, str]:
         "status": "ok",
         "model_loaded": str(_model is not None),
         "database": "connected",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        # Diagnostics
+        "model_path_exists": str(MODEL_PATH.exists()),
+        "tf_available": str(_tf_available),
+        "load_model_imported": str(_load_model_available),
+        "model_error": _model_error or ""
     }
 
 
@@ -227,34 +265,58 @@ async def analyze_image(
     try:
         # Load and process image
         content = await file.read()
+        print(f"[DEBUG] Image loaded: {len(content)} bytes")
         image = Image.open(io.BytesIO(content)).convert("RGB")
         array = np.array(image)
         bgr_array = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
+        print(f"[DEBUG] Image converted: {array.shape}")
         
         # 1. IDENTIFICATION
-        id_results = identifier.identify_animal(
-            bgr_array,
-            known_identifiers={'qr_id': qr_id, 'rfid': rfid, 'ear_tag_id': ear_tag_id}
-        )
+        print("[DEBUG] Starting identification...")
+        try:
+            id_results = identifier.identify_animal(
+                bgr_array,
+                known_identifiers={'qr_id': qr_id, 'rfid': rfid, 'ear_tag_id': ear_tag_id}
+            )
+            print(f"[DEBUG] Identification OK: {id_results.get('primary_method')}")
+        except Exception as id_err:
+            print(f"[ERROR] Identification failed: {id_err}")
+            raise
         
         # Try to match existing animal
         detected_animal = None
-        if id_results['detected_identifiers'].get('qr_id'):
-            detected_animal = db.get_animal(qr_id=id_results['detected_identifiers']['qr_id'])
-        elif ear_tag_id:
-            detected_animal = db.get_animal(ear_tag=ear_tag_id)
-        elif animal_id:
-            detected_animal = db.get_animal(animal_id=animal_id)
+        try:
+            if id_results['detected_identifiers'].get('qr_id'):
+                detected_animal = db.get_animal(qr_id=id_results['detected_identifiers']['qr_id'])
+            elif ear_tag_id:
+                detected_animal = db.get_animal(ear_tag=ear_tag_id)
+            elif animal_id:
+                detected_animal = db.get_animal(animal_id=animal_id)
+            print(f"[DEBUG] Animal lookup: found={detected_animal is not None}")
+        except Exception as lookup_err:
+            print(f"[ERROR] Animal lookup failed: {lookup_err}")
         
         # Use detected or provided animal_id
         final_animal_id = detected_animal['animal_id'] if detected_animal else (animal_id or "unknown")
         
         # 2. BEHAVIOR ANALYSIS
-        behavior = _predict_behavior(array)
+        print("[DEBUG] Starting behavior analysis...")
+        try:
+            behavior = _predict_behavior(array)
+            print(f"[DEBUG] Behavior OK: {behavior['label']}")
+        except Exception as bhv_err:
+            print(f"[ERROR] Behavior failed: {bhv_err}")
+            behavior = {"label": "Unknown", "scores": {}}
         
         # 3. HEALTH ANALYSIS
+        print("[DEBUG] Starting health analysis...")
         # Try ML model first
-        health_ml = _predict_health_ml(array)
+        try:
+            health_ml = _predict_health_ml(array)
+            print(f"[DEBUG] ML Health OK: {health_ml}")
+        except Exception as ml_err:
+            print(f"[ERROR] ML Health failed: {ml_err}")
+            health_ml = None
         
         # Comprehensive health assessment
         vitals = {
@@ -264,11 +326,26 @@ async def analyze_image(
             'respiratory_rate_bpm': respiratory_rate
         }
         
-        comprehensive_health = health_analyzer.comprehensive_health_assessment(
-            bgr_array,
-            pose_keypoints=None,  # Can be integrated with pose estimation
-            vitals=vitals
-        )
+        print("[DEBUG] Starting comprehensive health assessment...")
+        try:
+            comprehensive_health = health_analyzer.comprehensive_health_assessment(
+                bgr_array,
+                pose_keypoints=None,  # Can be integrated with pose estimation
+                vitals=vitals
+            )
+            print(f"[DEBUG] Comprehensive health OK: {comprehensive_health.get('overall_status')}")
+        except Exception as comp_err:
+            print(f"[ERROR] Comprehensive health failed: {comp_err}")
+            # Fallback health assessment
+            comprehensive_health = {
+                'overall_status': 'Unknown',
+                'health_score': 0,
+                'body_condition': {'score': 0, 'assessment': 'Unknown'},
+                'lameness': {'detected': False},
+                'symptoms': {'symptoms': [], 'total_detected': 0},
+                'recommendations': ['Please review manually'],
+                'alerts': []
+            }
         
         # Merge ML health prediction with comprehensive analysis
         if health_ml:
@@ -281,60 +358,75 @@ async def analyze_image(
         else:
             # Use comprehensive assessment primary finding
             final_health = {
-                'label': comprehensive_health['overall_status'],
-                'confidence': comprehensive_health['health_score'] / 100,
+                'label': comprehensive_health.get('overall_status', 'Unknown'),
+                'confidence': (comprehensive_health.get('health_score', 0) or 0) / 100,
                 'scores': {},
                 'comprehensive': comprehensive_health
             }
+        print(f"[DEBUG] Health finalized: {final_health['label']}")
         
         # 4. BUILD RECOMMENDATIONS
-        recommendations = comprehensive_health.get('recommendations', [])
+        recommendations = list(comprehensive_health.get('recommendations', []))
         recommendations.extend(comprehensive_health.get('alerts', []))
         
         # 5. SAVE TO DATABASE
-        record = {
-            'analysis_id': analysis_id,
-            'animal_id': final_animal_id,
-            'health_status': final_health['label'],
-            'health_confidence': final_health['confidence'],
-            'health_scores': final_health.get('scores', {}),
-            'behavior_status': behavior['label'],
-            'behavior_scores': behavior.get('scores', {}),
-            'weight_kg': weight_kg,
-            'body_temperature_c': body_temperature_c,
-            'heart_rate_bpm': heart_rate_bpm,
-            'respiratory_rate': respiratory_rate,
-            'body_condition_score': comprehensive_health['body_condition'].get('score'),
-            'lameness_detected': comprehensive_health['lameness'].get('detected', False),
-            'posture_issues': json.dumps(comprehensive_health.get('posture_issues', [])),
-            'visible_injuries': json.dumps(comprehensive_health['symptoms'].get('symptoms', [])),
-            'symptoms': notes,
-            'recommendations': recommendations,
-            'location': location,
-            'recorded_by': recorded_by
-        }
-        
-        db.add_health_record(record)
+        print("[DEBUG] Building database record...")
+        try:
+            record = {
+                'analysis_id': analysis_id,
+                'animal_id': final_animal_id,
+                'health_status': final_health.get('label', 'Unknown'),
+                'health_confidence': final_health.get('confidence', 0),
+                'health_scores': final_health.get('scores', {}),
+                'behavior_status': behavior.get('label', 'Unknown'),
+                'behavior_scores': behavior.get('scores', {}),
+                'weight_kg': weight_kg,
+                'body_temperature_c': body_temperature_c,
+                'heart_rate_bpm': heart_rate_bpm,
+                'respiratory_rate': respiratory_rate,
+                'body_condition_score': comprehensive_health.get('body_condition', {}).get('score'),
+                'lameness_detected': comprehensive_health.get('lameness', {}).get('detected', False),
+                'posture_issues': json.dumps(comprehensive_health.get('posture_issues', [])),
+                'visible_injuries': json.dumps(comprehensive_health.get('symptoms', {}).get('symptoms', [])),
+                'symptoms': notes,
+                'recommendations': recommendations,
+                'location': location,
+                'recorded_by': recorded_by
+            }
+            
+            db.add_health_record(record)
+            print("[DEBUG] Record saved to database")
+        except Exception as db_err:
+            print(f"[WARN] Database save failed (continuing): {db_err}")
         
         # 6. MARK ATTENDANCE
-        if final_animal_id != "unknown":
-            db.mark_attendance(
-                final_animal_id,
-                location=location,
-                detection_method=id_results.get('primary_method', 'manual')
-            )
+        try:
+            if final_animal_id != "unknown":
+                db.mark_attendance(
+                    final_animal_id,
+                    location=location,
+                    detection_method=id_results.get('primary_method', 'manual')
+                )
+                print("[DEBUG] Attendance marked")
+        except Exception as att_err:
+            print(f"[WARN] Attendance marking failed (continuing): {att_err}")
         
         # 7. LOG IDENTIFICATION EVENT
-        if id_results['primary_method']:
-            db.log_identification_event({
-                'animal_id': final_animal_id,
-                'detection_method': id_results['primary_method'],
-                'identifier_value': str(id_results.get('detected_identifiers', {})),
-                'confidence': id_results['confidence_score'],
-                'location': location
-            })
+        try:
+            if id_results.get('primary_method'):
+                db.log_identification_event({
+                    'animal_id': final_animal_id,
+                    'detection_method': id_results['primary_method'],
+                    'identifier_value': str(id_results.get('detected_identifiers', {})),
+                    'confidence': id_results.get('confidence_score', 0),
+                    'location': location
+                })
+                print("[DEBUG] Identification event logged")
+        except Exception as log_err:
+            print(f"[WARN] Event logging failed (continuing): {log_err}")
         
         elapsed_ms = int((time.time() - start) * 1000)
+        print(f"[DEBUG] Analysis complete in {elapsed_ms}ms")
         
         # Response
         return {
@@ -467,9 +559,15 @@ def get_growth_history(animal_id: str):
 
 if __name__ == "__main__":
     import uvicorn
+    # Get port from environment variable or default to 8000
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    
     print(f"🚀 Starting {APP_TITLE}")
     print(f"📊 Database initialized: livestock.db")
     print(f"🤖 ML Model loaded: {_model is not None}")
     print(f"🔍 Identification system: Active")
     print(f"🏥 Health analyzer: Active")
-    uvicorn.run("server_enhanced:app", host="0.0.0.0", port=8080, reload=True)
+    print(f"📡 Server running on {host}:{port}")
+    
+    uvicorn.run("server_enhanced:app", host=host, port=port, reload=False)

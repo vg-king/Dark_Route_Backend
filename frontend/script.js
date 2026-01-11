@@ -1,4 +1,31 @@
-const API_BASE = "http://localhost:8080";
+// API Base URL configuration for deployment support
+// - Local development: http://localhost:8000
+// - Render/Production: Set via window.API_BASE or environment at build time
+// - Default fallback: Current origin (for same-host deployment)
+
+const getAPIBase = () => {
+  // Priority 1: Explicit window.API_BASE (set via HTML script tag or build process)
+  if (typeof window.API_BASE !== 'undefined' && window.API_BASE) {
+    return window.API_BASE;
+  }
+  
+  // Priority 2: Environment variable at runtime (if injected)
+  if (typeof API_URL !== 'undefined' && API_URL) {
+    return API_URL;
+  }
+  
+  // Priority 3: Check if running on Render or similar platform
+  const hostname = window.location.hostname;
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // On production domain, assume backend is on same origin
+    return window.location.origin;
+  }
+  
+  // Priority 4: Default to localhost:8000 for local development
+  return "http://localhost:8000";
+};
+
+const API_BASE = getAPIBase();
 const statusEl = document.getElementById("api-status");
 const latencyEl = document.getElementById("latency");
 const form = document.getElementById("analyze-form");

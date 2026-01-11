@@ -8,6 +8,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  
+  <!-- API Configuration for Render/Production Deployment -->
+  <!-- Edit the URL below to match your backend deployment -->
+  <!-- For Render: change to https://your-backend-name.onrender.com -->
+  <!-- For local development: leave as http://localhost:8000 -->
+  <script>
+    // Auto-detect API base URL
+    // - Production: Uses same origin or environment-configured URL
+    // - Local: Uses http://localhost:8000
+    if (!window.API_BASE) {
+      const hostname = window.location.hostname;
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        // Running on production domain - use same origin
+        window.API_BASE = window.location.origin;
+      } else {
+        // Running locally - use localhost backend
+        window.API_BASE = "http://localhost:8000";
+      }
+    }
+    console.log("API Backend:", window.API_BASE);
+  </script>
 </head>
 <body>
   <header class="hero">
