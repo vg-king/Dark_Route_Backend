@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+myenv/
+.venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local development files
+*.log
+*.db
+*.sqlite
+*.sqlite3
+test_report.json
+output.png
+
+# Model files (optional - uncomment if you want to exclude large models)
+# *.h5
+# *.pkl
+# *.pth
+
+# Test images
+*.jpg
+*.jpeg
+*.png
+*.gif
+input.jpg
+output.png
+lion1.jpg
+lampi.jpg
+walking.jpg
+
+# Documentation (optional - exclude from production)
+*.md
+ReadBeforeImplementing
+FEATURE_CHECKLIST.md
+IMPLEMENTATION_CHECKLIST.md
+QUICK_START.md
+SYSTEM_COMPLETE.md
+TEST_SUMMARY.md
+ACCURACY_REPORT.md
+
+# Scripts
+setup.bat
+start_server.bat
+check_dependencies.py
+testings.py
+test_accuracy.py
+videos.py
+
+# Frontend (not needed in backend container)
+frontend/
+
+# Old/unused files
+server.py

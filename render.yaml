@@ -1,0 +1,24 @@
+services:
+  # Backend API Service
+  - type: web
+    name: livestock-health-api
+    env: docker
+    region: oregon # Change to your preferred region (oregon, frankfurt, singapore, etc.)
+    plan: starter # free tier - upgrade to standard or pro for production
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: DATABASE_PATH
+        value: /app/data/livestock.db
+    healthCheckPath: /health
+    autoDeploy: true
+    
+databases:
+  # Optional: SQLite is used by default in the container
+  # For production, consider PostgreSQL:
+  # - name: livestock-db
+  #   databaseName: livestock
+  #   plan: starter
